@@ -243,6 +243,7 @@ const announcementShowOnce = ref(true)
 const announcementSaving = ref(false)
 const announcementLoading = ref(false)
 const currentAnnouncement = ref<{ content: string, showOnce: boolean, updatedAt: number, shouldShow?: boolean } | null>(null)
+const showThemeDropdown = ref(false)
 
 async function handleLogout() {
   await userStore.logout()
@@ -644,12 +645,24 @@ async function markAnnouncementRead() {
     </nav>
 
     <!-- Theme Settings -->
-    <div class="border-t border-gray-200/50 px-3 py-3 dark:border-gray-700/50">
-      <div class="mb-2 flex items-center gap-2 px-3">
-        <div class="i-carbon-color-palette text-sm" :style="{ color: 'var(--theme-primary)' }" />
-        <span class="text-xs text-gray-500 font-medium dark:text-gray-400">主题设置</span>
-      </div>
-      <div class="grid grid-cols-4 gap-1.5 px-1">
+    <div class="border-t border-gray-200/50 px-3 py-2 dark:border-gray-700/50">
+      <button
+        class="w-full flex items-center justify-between rounded-lg px-3 py-2 transition-colors hover:bg-gray-100/50 dark:hover:bg-gray-700/50"
+        @click="showThemeDropdown = !showThemeDropdown"
+      >
+        <div class="flex items-center gap-2">
+          <div class="i-carbon-color-palette text-sm" :style="{ color: 'var(--theme-primary)' }" />
+          <span class="text-xs text-gray-500 font-medium dark:text-gray-400">主题设置</span>
+        </div>
+        <div
+          class="i-carbon-chevron-down text-gray-400 transition-transform duration-200"
+          :class="{ 'rotate-180': showThemeDropdown }"
+        />
+      </button>
+      <div
+        v-show="showThemeDropdown"
+        class="grid grid-cols-4 gap-1.5 px-1 pt-2 transition-all"
+      >
         <button
           v-for="(t, theme) in appStore.themes"
           :key="theme"

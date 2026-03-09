@@ -24,7 +24,6 @@ const pendingAction = ref<(() => Promise<void>) | null>(null)
 const avatarErrorKeys = ref<Set<string>>(new Set())
 const searchKeyword = ref('')
 const showBlacklistModal = ref(false)
-
 const batchLoading = ref(false)
 
 function confirmAction(msg: string, action: () => Promise<void>) {

@@ -30,6 +30,7 @@ async function loadProto() {
         getResourcePath('proto', 'qqvippb.proto'),
         getResourcePath('proto', 'sharepb.proto'),
         getResourcePath('proto', 'illustratedpb.proto'),
+        getResourcePath('proto', 'interactpb.proto'),
     ], { keepCase: true });
 
     // 网关
@@ -158,6 +159,8 @@ async function loadProto() {
     types.KickoutNotify = root.lookupType('gatepb.KickoutNotify');
     types.FriendApplicationReceivedNotify = root.lookupType('gamepb.friendpb.FriendApplicationReceivedNotify');
     types.FriendAddedNotify = root.lookupType('gamepb.friendpb.FriendAddedNotify');
+    types.InteractRecordsRequest = root.lookupType('gamepb.interactpb.InteractRecordsRequest');
+    types.InteractRecordsReply = root.lookupType('gamepb.interactpb.InteractRecordsReply');
     types.ItemNotify = root.lookupType('gamepb.itempb.ItemNotify');
     types.GoodsUnlockNotify = root.lookupType('gamepb.shoppb.GoodsUnlockNotify');
     types.TaskInfoNotify = root.lookupType('gamepb.taskpb.TaskInfoNotify');

@@ -259,7 +259,32 @@ function getAllSeeds() {
 }
 
 function getSeedImageBySeedId(seedId) {
-    return seedImageMap.get(Number(seedId) || 0) || '';
+    const id = Number(seedId) || 0;
+    if (id <= 0) return '';
+
+    // 1. 直接通过 seedId 查找
+    const direct = seedImageMap.get(id);
+    if (direct) return direct;
+
+    // 2. 通过 ItemInfo.asset_name 查找
+    const item = seedItemMap.get(id);
+    if (item && item.asset_name) {
+        const assetName = String(item.asset_name);
+        const byAsset = seedAssetImageMap.get(assetName);
+        if (byAsset) return byAsset;
+    }
+
+    // 3. 根据 seedId 推算 Crop_xxx 格式查找
+    // seedId 格式如 20003，对应 Crop_3
+    const cropMatch = String(id).match(/^2\d{3}$/);
+    if (cropMatch) {
+        const cropNum = String(id).slice(-3).replace(/^0+/, '') || String(id).slice(-3);
+        const assetName = `Crop_${cropNum}`;
+        const byAsset = seedAssetImageMap.get(assetName);
+        if (byAsset) return byAsset;
+    }
+
+    return '';
 }
 
 function getItemImageById(itemId) {

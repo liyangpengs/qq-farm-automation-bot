@@ -9,11 +9,6 @@ const { sidebarOpen } = storeToRefs(appStore)
 
 <template>
   <div class="w-screen flex overflow-hidden bg-gray-50 dark:bg-gray-900" style="height: 100dvh;">
-    <!-- 全局水印 -->
-    <div class="watermark-container">
-      <div class="watermark" />
-    </div>
-
     <!-- Mobile Sidebar Overlay -->
     <div
       v-if="sidebarOpen"
@@ -52,56 +47,6 @@ const { sidebarOpen } = storeToRefs(appStore)
 </template>
 
 <style scoped>
-/* 水印样式 */
-.watermark-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 9999;
-  overflow: hidden;
-}
-
-.watermark {
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background-image: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 80px,
-    rgba(0, 0, 0, 0.02) 80px,
-    rgba(0, 0, 0, 0.02) 81px
-  ),
-  repeating-linear-gradient(
-    90deg,
-    transparent,
-    transparent 80px,
-    rgba(0, 0, 0, 0.02) 80px,
-    rgba(0, 0, 0, 0.02) 81px
-  );
-}
-
-.watermark::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='120'%3E%3Ctext x='50%25' y='50%25' font-size='14' font-family='Arial, sans-serif' fill='rgba(128, 128, 128, 0.15)' text-anchor='middle' dominant-baseline='middle' transform='rotate(-20, 120, 60)'%3E开源项目，禁止倒卖！%3C/text%3E%3C/svg%3E");
-  background-repeat: repeat;
-  transform: rotate(-0deg);
-}
-
-.dark .watermark::before {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='120'%3E%3Ctext x='50%25' y='50%25' font-size='14' font-family='Arial, sans-serif' fill='rgba(200, 200, 200, 0.1)' text-anchor='middle' dominant-baseline='middle' transform='rotate(-20, 120, 60)'%3E开源项目，禁止倒卖！%3C/text%3E%3C/svg%3E");
-}
-
 /* Slide Fade Transition */
 .slide-fade-enter-active,
 .slide-fade-leave-active {

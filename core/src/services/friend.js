@@ -8,7 +8,7 @@ const { isAutomationOn, getFriendQuietHours, getFriendBlacklist, setFriendBlackl
 const { sendMsgAsync, getUserState, networkEvents } = require('../utils/network');
 const { types } = require('../utils/proto');
 const { toLong, toNum, toTimeSec, getServerTimeSec, log, logWarn, sleep } = require('../utils/utils');
-const { getCurrentPhase, setOperationLimitsCallback } = require('./farm');
+const { getCurrentPhase, setOperationLimitsCallback, buildLandMap, getDisplayLandContext, isOccupiedSlaveLand } = require('./farm');
 const { createScheduler } = require('./scheduler');
 const { recordOperation } = require('./stats');
 const { sellAllFruits } = require('./warehouse');
@@ -20,10 +20,6 @@ let externalSchedulerMode = false;
 let lastResetDate = '';  // 上次重置日期 (YYYY-MM-DD)
 const friendScheduler = createScheduler('friend');
 
-// 操作限制状态 (从服务器响应中更新)
-// 操作类型ID (根据游戏代码):
-// 10001 = 收获, 10002 = 铲除, 10003 = 放草, 10004 = 放虫
-// 10005 = 除草(帮好友), 10006 = 除虫(帮好友), 10007 = 浇水(帮好友), 10008 = 偷菜
 const operationLimits = new Map();
 
 // 操作类型名称映射
@@ -65,20 +61,6 @@ function inFriendQuietHours(now = new Date()) {
 }
 
 // ============ 好友 API ============
-
-// async function getAllFriends() {
-//     const body = types.GetAllFriendsRequest.encode(types.GetAllFriendsRequest.create({})).finish();
-//     const { body: replyBody } = await sendMsgAsync('gamepb.friendpb.FriendService', 'GetAll', body);
-//     return types.GetAllFriendsReply.decode(replyBody);
-// }
-
-// ============ 好友申请 API (微信同玩) ============
-
-// async function getApplications() {
-//     const body = types.GetApplicationsRequest.encode(types.GetApplicationsRequest.create({})).finish();
-//     const { body: replyBody } = await sendMsgAsync('gamepb.friendpb.FriendService', 'GetApplications', body);
-//     return types.GetApplicationsReply.decode(replyBody);
-// }
 async function getAllFriends() {
     // QQ 平台使用 SyncAll，微信平台使用 GetAll
     const isQQ = CONFIG.platform === 'qq';
@@ -413,9 +395,13 @@ function analyzeFriendLands(lands, myGid, friendName = '', options = {}) {
         canPutWeed: [],  // 可以放草
         canPutBug: [],   // 可以放虫
     };
+    const landsMap = buildLandMap(lands);
 
     for (const land of lands) {
         const id = toNum(land.id);
+        if (isOccupiedSlaveLand(land, landsMap)) {
+            continue;
+        }
         const plant = land.plant;
 
         if (!plant || !plant.phases || plant.phases.length === 0) {
@@ -526,10 +512,17 @@ async function getFriendLandsDetail(friendGid) {
 
         const landsList = [];
         const nowSec = getServerTimeSec();
+        const landsMap = buildLandMap(lands);
         for (const land of lands) {
             const id = toNum(land.id);
             const level = toNum(land.level);
             const unlocked = !!land.unlocked;
+            const {
+                sourceLand,
+                occupiedByMaster,
+                masterLandId,
+                occupiedLandIds,
+            } = getDisplayLandContext(land, landsMap);
             if (!unlocked) {
                 landsList.push({
                     id,
@@ -541,17 +534,43 @@ async function getFriendLandsDetail(friendGid) {
                     needWater: false,
                     needWeed: false,
                     needBug: false,
+                    occupiedByMaster: false,
+                    masterLandId: 0,
+                    occupiedLandIds: [],
+                    plantSize: 1,
                 });
                 continue;
             }
-            const plant = land.plant;
+            const plant = sourceLand && sourceLand.plant;
             if (!plant || !plant.phases || plant.phases.length === 0) {
-                landsList.push({ id, unlocked: true, status: 'empty', plantName: '', phaseName: '空地', level });
+                landsList.push({
+                    id,
+                    unlocked: true,
+                    status: 'empty',
+                    plantName: '',
+                    phaseName: '空地',
+                    level,
+                    occupiedByMaster,
+                    masterLandId,
+                    occupiedLandIds,
+                    plantSize: 1,
+                });
                 continue;
             }
             const currentPhase = getCurrentPhase(plant.phases, false, '');
             if (!currentPhase) {
-                landsList.push({ id, unlocked: true, status: 'empty', plantName: '', phaseName: '', level });
+                landsList.push({
+                    id,
+                    unlocked: true,
+                    status: 'empty',
+                    plantName: '',
+                    phaseName: '',
+                    level,
+                    occupiedByMaster,
+                    masterLandId,
+                    occupiedLandIds,
+                    plantSize: 1,
+                });
                 continue;
             }
             const phaseVal = currentPhase.phase;
@@ -560,6 +579,10 @@ async function getFriendLandsDetail(friendGid) {
             const plantCfg = getPlantById(plantId);
             const seedId = toNum(plantCfg && plantCfg.seed_id);
             const seedImage = seedId > 0 ? getSeedImageBySeedId(seedId) : '';
+            const plantSize = Math.max(1, toNum(plantCfg && plantCfg.size) || 1);
+            const totalSeason = Math.max(1, toNum(plantCfg && plantCfg.seasons) || 1);
+            const currentSeasonRaw = toNum(plant.season);
+            const currentSeason = currentSeasonRaw > 0 ? Math.min(currentSeasonRaw, totalSeason) : 1;
             const phaseName = PHASE_NAMES[phaseVal] || '';
             const maturePhase = Array.isArray(plant.phases)
                 ? plant.phases.find((p) => p && toNum(p.phase) === PlantPhase.MATURE)
@@ -578,11 +601,17 @@ async function getFriendLandsDetail(friendGid) {
                 seedId,
                 seedImage,
                 phaseName,
+                currentSeason,
+                totalSeason,
                 level,
                 matureInSec,
                 needWater: toNum(plant.dry_num) > 0,
                 needWeed: (plant.weed_owners && plant.weed_owners.length > 0),
                 needBug: (plant.insect_owners && plant.insect_owners.length > 0),
+                occupiedByMaster,
+                masterLandId,
+                occupiedLandIds,
+                plantSize,
             });
         }
 
