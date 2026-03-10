@@ -6,6 +6,7 @@
 - 感谢[sulimu2/qq-farm-bot](https://github.com/sulimu2/qq-farm-bot)大佬提供的新版协议思路
 - 建议自己拉项目部署，没有测试过打包的Windows端和Mac端，docker后续整！
 - 更新优化日志详见update.log 感谢支持，喜欢的点一个start吧！
+- 默认账号密码都是admin，端口3007
 ## 技术栈
 
 **后端**
